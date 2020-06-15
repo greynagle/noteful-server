@@ -2,17 +2,35 @@ const NotefulService = {
     getAll(knex) {
         return knex
             .raw(
-                `select n."name" as note, n."content", n.mod_date, f."name" as folder from notes n join	folders f on f.id = n.folder_id `
+                `select n.id as note_id, n.name, n.mod_date as modified, n."content", n.folder_id, f."name" as folder_name from notes n join folders f on f.id = n.folder_id` 
             )
             .then((rows) => {
                 return rows;
             });
     },
+	getFolderAll(knex) {
+		return knex
+			.raw(
+				`select * from folders`
+			)
+			.then((rows) => {
+				return rows
+			})
+	},
+	getNoteAll(knex) {
+		return knex
+			.raw(
+				`select n.id, n.name, n.mod_date, n."content", f."name" as folder_name from notes n join folders f on f.id = n.folder_id`
+			)
+			.then((rows) => {
+				return rows
+			})
+	},
     getNoteById(knex, id) {
-        return knex.from("notes").select("*").where("id", id).first();
+        return knex.from("notes").select("*").where({ id }).first();
     },
     getFolderById(knex, id) {
-        return knex.from("folders").select("*").where("id", id).first();
+        return knex.from("folders").select("*").where({ id }).first();
     },
     addNote(knex, newNote) {
         return knex
@@ -43,7 +61,7 @@ const NotefulService = {
     },
     deleteFolder(knex, id) {
         return knex("notes")
-            .where(("notes.folder_id" = id))
+            .where((folder_id = id))
             .delete()
             .then(() => {
                 return knex("folders").where({ id }).delete();

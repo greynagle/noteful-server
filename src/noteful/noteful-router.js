@@ -30,42 +30,63 @@ notefulRouter.route("/all").get((req, res, next) => {
 });
 
 // route for posting to make new folders
-notefulRouter.route("/folders").post(bodyParser, (req, res, next) => {
-    for (const field of ["name"]) {
-        if (!req.body[field]) {
-            logger.error(`${field} is required`);
-            return res.status(400).send(`'${field}' is required`);
+notefulRouter
+    .route("/folders")
+    .get((req, res, next) => {
+        NotefulService.getFolderAll(req.app.get("db"))
+            .then((data) => {
+				// console.log(data)
+                res.json(data.rows);
+            })
+            .catch(next);
+    })
+
+    .post(bodyParser, (req, res, next) => {
+        for (const field of ["name"]) {
+            if (!req.body[field]) {
+                logger.error(`${field} is required`);
+                return res.status(400).send(`'${field}' is required`);
+            }
         }
-    }
-    // must be alphanumeric
-    for (const field of ["name"]) {
-        if (/\W/.test(req.body[field])) {
-            logger.error(`${field} must be strictly alphanumeric`);
-            return res
-                .status(400)
-                .send(`'${field}' must be strictly alphanumeric`);
+        // must be alphanumeric
+        for (const field of ["name"]) {
+            if (/\W/.test(req.body[field])) {
+                logger.error(`${field} must be strictly alphanumeric`);
+                return res
+                    .status(400)
+                    .send(`'${field}' must be strictly alphanumeric`);
+            }
         }
-    }
 
-    const { name } = req.body;
+        const { name } = req.body;
 
-    const newFolder = { name };
+        const newFolder = { name };
 
-    NotefulService.addFolder(req.app.get("db"), newFolder)
-        .then((folder) => {
-            logger.info(`folder with id ${folder.id} created.`);
-            res.status(201)
-                .location(`/folder/${folder.id}`)
-                .json(serializeFolder(folder));
-        })
-        .catch(next);
-});
+        NotefulService.addFolder(req.app.get("db"), newFolder)
+            .then((folder) => {
+                logger.info(`folder with id ${folder.id} created.`);
+                res.status(201)
+                    .location(`/folder/${folder.id}`)
+                    .json(serializeFolder(folder));
+            })
+            .catch(next);
+    });
 
 // route for posting new notes
-notefulRouter.route("/notes")
-	.post(bodyParser, (req, res, next) => {
+notefulRouter
+    .route("/notes")
+    .get((req, res, next) => {
+        NotefulService.getNoteAll(req.app.get("db"))
+            .then((data) => {
+				// console.log(data)
+                res.json(data.rows);
+            })
+            .catch(next);
+    })
+
+    .post(bodyParser, (req, res, next) => {
         // if a field is empty
-        for (const field of ["title", "mod_date", "content", "folder_id"]) {
+        for (const field of ["name", "mod_date", "content", "folder_id"]) {
             if (!req.body[field]) {
                 logger.error(`${field} is required`);
                 return res.status(400).send(`'${field}' is required`);
@@ -73,7 +94,7 @@ notefulRouter.route("/notes")
         }
 
         // The title must be alphanumeric
-        for (const field of ["title"]) {
+        for (const field of ["name"]) {
             if (/\W/.test(req.body[field])) {
                 logger.error(
                     `${field} must be strictly alphanumeric and 16 char or less`
@@ -99,9 +120,9 @@ notefulRouter.route("/notes")
             }
         }
 
-        const { title, mod_date, content, folder_id } = req.body;
+        const { name, mod_date, content, folder_id } = req.body;
 
-        const newNote = { title, mod_date, content, folder_id };
+        const newNote = { name, mod_date, content, folder_id };
 
         NotefulService.addNote(req.app.get("db"), newNote)
             .then((note) => {
@@ -113,54 +134,9 @@ notefulRouter.route("/notes")
             .catch(next);
     });
 
-// add folder path
-// notefulRouter
-//     .route("/add-folder")
-
-//     // Cannot be: empty, longer than 16 characters, or non-alphanumeric
-//     // TODO: modify the post portion
-//     .post(bodyParser, (req, res, next) => {
-//         for (const field of ["name"]) {
-//             if (!req.body[field]) {
-//                 logger.error(`${field} is required`);
-//                 return res.status(400).send(`'${field}' is required`);
-//             }
-//         }
-//         // must be alphanumeric
-//         for (const field of ["name"]) {
-//             if (/\W/.test(req.body[field])) {
-//                 logger.error(`${field} must be strictly alphanumeric`);
-//                 return res
-//                     .status(400)
-//                     .send(`'${field}' must be strictly alphanumeric`);
-//             }
-//         }
-
-//         const { name } = req.body;
-
-//         const newFolder = { name };
-
-//         NotefulService.addFolder(req.app.get("db"), newFolder)
-//             .then((folder) => {
-//                 logger.info(`folder with id ${folder.id} created.`);
-//                 res.status(201)
-//                     .location(`/folder/${folder.id}`)
-//                     .json(serializeFolder(folder));
-//             })
-//             .catch(next);
-//     });
-
-// add-note path
-notefulRouter
-    .route("/add-note")
-
-    // Cannot be: empty, longer than 16 characters, or non-alphanumeric
-    // TODO: modify the post portion
-    
-
 // patching and deleting folders
 notefulRouter
-    .route("/folder/:folder_id")
+    .route("/folders/:folder_id")
     .all((req, res, next) => {
         const { folder_id } = req.params;
         NotefulService.getFolderById(req.app.get("db"), folder_id)
@@ -211,6 +187,62 @@ notefulRouter
                 logger.info(
                     `Folder and associated notes with id ${folder_id} deleted.`
                 );
+                res.status(204).end();
+            })
+            .catch(next);
+    });
+
+// patching and deleting notes
+notefulRouter
+    .route("/notes/:note_id")
+    .all((req, res, next) => {
+        const { note_id } = req.params;
+        NotefulService.getNoteById(req.app.get("db"), note_id)
+            .then((note) => {
+                if (!note) {
+                    logger.error(`Note with id ${note_id} not found.`);
+                    return res.status(404).json({
+                        error: { message: `Note Not Found` },
+                    });
+                }
+                res.note = note;
+                next();
+            })
+            .catch(next);
+    })
+
+    .patch(bodyParser, (req, res, next) => {
+        const { title, mod_date, content, folder_id } = req.body;
+        const noteToUpdate = { title, mod_date, content, folder_id };
+
+        const numberOfValues = Object.values(noteToUpdate).filter(Boolean)
+            .length;
+        if (numberOfValues === 0) {
+            logger.error(`Invalid update without required fields`);
+            return res.status(400).json({
+                error: {
+                    message: `Request body must content either 'name'`,
+                },
+            });
+        }
+
+        NotefulService.updateNote(
+            req.app.get("db"),
+            req.params.id,
+            noteToUpdate
+        )
+            .then((numRowsAffected) => {
+                res.status(204).end();
+            })
+            .catch(next);
+    })
+
+    .delete((req, res, next) => {
+		// console.log(req.params)
+        const { note_id } = req.params;
+        NotefulService.deleteNote(req.app.get("db"), note_id)
+            .then((numRowsAffected) => {
+                logger.info(`Note with id ${note_id} deleted.`);
                 res.status(204).end();
             })
             .catch(next);

@@ -65,7 +65,7 @@ describe("Noteful Endpoints", () => {
     //     });
     // });
 
-    describe("GET /all", () => {
+    describe.only("GET /all", () => {
         context(`Given no notes or folders`, () => {
             it(`responds with 200 and an empty list`, () => {
                 return supertest(app)
@@ -87,9 +87,9 @@ describe("Noteful Endpoints", () => {
                 return db.into("notes").insert(testNotes);
             });
 
-            it.skip("gets all from the database", () => {
+            it("gets all from the database", () => {
                 return supertest(app)
-                    .get("/all")
+                    .get("/folders")
                     .set("Authorization", `Bearer ${process.env.API_TOKEN}`)
                     .expect(200, getAllResponse);
             });
@@ -164,7 +164,7 @@ describe("Noteful Endpoints", () => {
         // });
     });
 
-    describe.only("POST /add-note", () => {
+    describe("POST /add-note", () => {
         context(`Given no notes or folders`, () => {
             it(`responds with 200 and an empty list`, () => {
                 return supertest(app)
