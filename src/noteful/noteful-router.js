@@ -95,7 +95,7 @@ notefulRouter
 
         // The title must be alphanumeric
         for (const field of ["name"]) {
-            if (/[^a-zA-Z0-9\s]/.test(req.body[field])) {
+            if (/[^a-zA-Z0-9.,;:()-\s]/.test(req.body[field])) {
                 logger.error(
                     `${field} must be strictly alphanumeric and 16 char or less`
                 );
